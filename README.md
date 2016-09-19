@@ -9,4 +9,6 @@ and Int type options expect a value after the option, bool types canhave the val
 Multiple options not define, the the value of the option is the last such specified option in the command line.
 
 
-See the [example program](test-cli/main.go) for usage.
+See the [this example program](test-cli/main.go) for usage on the dynamic more (undeclared flags), and
+[this one](test2-cli/main.go) for usage on a more traditional declare the flags approach.
+
