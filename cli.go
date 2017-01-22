@@ -9,6 +9,9 @@ import (
 	"strings"
 )
 
+type Params []string
+type Options map[string]interface{}
+
 type Option struct {
 	Name         string
 	Def          interface{}
@@ -73,7 +76,8 @@ func (cmd *Command) BoolOption(target *bool, name string, def bool, descr string
 }
 
 //Parse - parse the command line, return a list of params and a map of options
-func (cmd *Command) Parse(args []string) ([]string, map[string]interface{}) {
+func (cmd *Command) Parse() (Params, Options) {
+	args := os.Args
 	options := make(map[string]interface{})
 	for _, opt := range cmd.Options {
 		options[opt.Name] = opt.Def
@@ -141,13 +145,19 @@ func (cmd *Command) Parse(args []string) ([]string, map[string]interface{}) {
 		switch opt.Type {
 		case "string":
 			s, _ := val.(string)
-			*opt.stringTarget = s
+			if opt.stringTarget != nil {
+				*opt.stringTarget = s
+			}
 		case "int":
 			i, _ := val.(int)
-			*opt.intTarget = i
+			if opt.intTarget != nil {
+				*opt.intTarget = i
+			}
 		case "bool":
 			b, _ := val.(bool)
-			*opt.boolTarget = b
+			if opt.boolTarget != nil {
+				*opt.boolTarget = b
+			}
 		default:
 		}
 	}
@@ -161,9 +171,8 @@ func Fatal(msg interface{}) {
 
 //--- the following is a different dynamic approach. No spec, just parse what you find
 
-type Context map[string]interface{}
-
-func Parse(args []string) Context {
+func Parse() (Params, Options) {
+	args := os.Args[1:]
 	options := make(map[string]interface{})
 	params := make([]string, 0)
 	var expectedOption []string
@@ -179,25 +188,11 @@ func Parse(args []string) Context {
 			if strings.HasPrefix(token, "--") {
 				Fatal("Missing value for " + strings.Join(expectedOption, "."))
 			}
-			put(options, expectedOption, tokenValue(token))
+			put(options, expectedOption, token)
 			expectedOption = nil
 		}
 	}
-	options["params"] = params
-	return options //&Context{Params: params, Options: options}
-}
-
-func tokenValue(token string) interface{} {
-	if token == "true" {
-		return true
-	} else if token == "false" {
-		return false
-	}
-	n, err := strconv.Atoi(token)
-	if err == nil {
-		return n
-	}
-	return token
+	return params, options
 }
 
 func put(obj map[string]interface{}, path []string, tokenValue interface{}) {
@@ -219,16 +214,16 @@ func put(obj map[string]interface{}, path []string, tokenValue interface{}) {
 	}
 }
 
-func (ctx Context) Get(path string) interface{} {
-	o, err := get(ctx, strings.Split(path, "."))
+func (opt Options) Get(path string) interface{} {
+	o, err := get(opt, strings.Split(path, "."))
 	if err != nil {
 		Fatal(err.Error())
 	}
 	return o
 }
 
-func (ctx Context) GetObject(path string) map[string]interface{} {
-	o := ctx.Get(path)
+func (opt Options) GetObject(path string) map[string]interface{} {
+	o := opt.Get(path)
 	if o != nil {
 		if m, ok := o.(map[string]interface{}); ok {
 			return m
@@ -238,8 +233,8 @@ func (ctx Context) GetObject(path string) map[string]interface{} {
 	return nil
 }
 
-func (ctx Context) GetInt(path string, defaultValue int) int {
-	o := ctx.Get(path)
+func (opt Options) GetInt(path string, defaultValue int) int {
+	o := opt.Get(path)
 	if o != nil {
 		if n, ok := o.(int); ok {
 			return n
@@ -249,8 +244,8 @@ func (ctx Context) GetInt(path string, defaultValue int) int {
 	return defaultValue
 }
 
-func (ctx Context) GetString(path string, defaultValue string) string {
-	o := ctx.Get(path)
+func (opt Options) GetString(path string, defaultValue string) string {
+	o := opt.Get(path)
 	if o != nil {
 		if s, ok := o.(string); ok {
 			return s
@@ -260,8 +255,8 @@ func (ctx Context) GetString(path string, defaultValue string) string {
 	return defaultValue
 }
 
-func (ctx Context) GetBool(path string, defaultValue bool) bool {
-	o := ctx.Get(path)
+func (opt Options) GetBool(path string, defaultValue bool) bool {
+	o := opt.Get(path)
 	if o != nil {
 		if s, ok := o.(bool); ok {
 			return s
