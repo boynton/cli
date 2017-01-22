@@ -54,7 +54,11 @@ func (cmd *Command) Usage() string {
 	//i.e. "usage: test-cli [--option1 <string>] [--option2 <string>] [--option3 <int>] [--option4 [<bool>]] param ..."
 	s := "usage: " + cmd.Name
 	for _, opt := range cmd.sortedOptions() {
-		s += fmt.Sprintf(" [--%s <%s>]", opt.Name, opt.Type)
+		if opt.Type == "bool" {
+			s += fmt.Sprintf(" [--%s]", opt.Name)
+		} else {
+			s += fmt.Sprintf(" [--%s <%s>]", opt.Name, opt.Type)
+		}
 	}
 	s += " [param ...]\n"
 	if cmd.Description != "" {
